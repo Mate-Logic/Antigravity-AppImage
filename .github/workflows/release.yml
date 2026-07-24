@@ -36,7 +36,7 @@ jobs:
           version_url: ${{ steps.get_url.outputs.download_url }}
           version_file: 'resources/app/product.json'
           version_bash: 'jq -r ".ideVersion"'
-          version_icon: 'antigravity.png'
+          version_icon: 'code.png'
       - name: Upload artifact
         if: ${{ env.APP_UPDATE_NEEDED == 'true' }}
         uses: actions/upload-artifact@v4
