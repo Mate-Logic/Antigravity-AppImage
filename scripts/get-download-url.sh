@@ -1,26 +1,27 @@
 #!/usr/bin/env bash
-# Fetches the latest Antigravity Linux (.tar.gz) download URL from antigravity.google
-# The URL is embedded in the main JS bundle which has a cache-busted filename
+# Fetches the latest Antigravity IDE Linux (.tar.gz) download URL.
+# Uses the official auto-updater releases API that antigravity.google itself
+# queries; the download URL is constructed from version + execution_id.
 
 set -euo pipefail
 
-BASE_URL="https://antigravity.google"
+RELEASES_API="https://antigravity-ide-auto-updater-974169037036.us-central1.run.app/releases"
+DOWNLOAD_BASE="https://edgedl.me.gvt1.com/edgedl/release2/j0qc3/antigravity/stable"
 
-# Get the JS bundle filename from the HTML page
-main_js=$(curl -sL --compressed "${BASE_URL}/download/linux" | grep -oP 'main-[A-Z0-9]+\.js' | head -1)
+release=$(curl -fsSL "$RELEASES_API" | jq -r '.[0] | "\(.version)-\(.execution_id)"')
+# Some entries have a stray trailing slash in execution_id
+release="${release%/}"
 
-if [[ -z "$main_js" ]]; then
-  echo "Error: Could not find main JS bundle" >&2
+if [[ -z "$release" || "$release" == null* || "$release" == *null ]]; then
+  echo "Error: could not resolve latest release from $RELEASES_API" >&2
   exit 1
 fi
 
-# Extract the Linux tar.gz download URL from the JS bundle
-download_url=$(curl -sL --compressed "${BASE_URL}/${main_js}" | \
-  grep -oP '"https://edgedl\.me\.gvt1\.com[^"]+linux-x64/Antigravity\.tar\.gz"' | \
-  tr -d '"' | head -1)
+download_url="${DOWNLOAD_BASE}/${release}/linux-x64/Antigravity%20IDE.tar.gz"
 
-if [[ -z "$download_url" ]]; then
-  echo "Error: Could not find download URL in JS bundle" >&2
+# Verify the URL actually resolves before handing it to the build
+if ! curl -fsIL "$download_url" >/dev/null; then
+  echo "Error: constructed URL is not downloadable: $download_url" >&2
   exit 1
 fi
 

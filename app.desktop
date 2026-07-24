@@ -3,10 +3,10 @@ Version=1.0
 Type=Application
 Name=Antigravity
 Comment=Build the new way
-Exec=antigravity %F
+Exec=antigravity-ide %F
 Icon=antigravity
 Categories=TextEditor;Development;IDE;
-StartupWMClass=Antigravity
+StartupWMClass=Antigravity IDE
 StartupNotify=true
 Keywords=Antigravity;antigravity
 MimeType=text/plain;inode/directory;application/x-code-workspace;
@@ -14,5 +14,5 @@ Actions=new-empty-window;
 
 [Desktop Action new-empty-window]
 Name=New Empty Window
-Exec=antigravity --new-window %F
+Exec=antigravity-ide --new-window %F
 Icon=antigravity
