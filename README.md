@@ -27,7 +27,9 @@ updaters can use the zsync asset from the latest GitHub release.
 
 ## Automation
 
-The scheduled workflow runs every six hours and also supports manual runs. It:
+The scheduled workflow runs every six hours and also supports manual runs. A
+manual run can set `force` to rebuild the current source and repair or refresh
+the latest release metadata. The workflow:
 
 1. Parses the official download page to find the current Linux x86_64 archive.
 2. Downloads the archive and computes its SHA-256 digest.

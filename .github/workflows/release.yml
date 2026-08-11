@@ -1,6 +1,12 @@
 name: Build AntigravityIDE AppImage
 on:
   workflow_dispatch:
+    inputs:
+      force:
+        description: 'Rebuild and update the latest release even when the source hash is unchanged'
+        required: false
+        default: false
+        type: boolean
   schedule:
     - cron: "5 */6 * * *"
   push:
@@ -25,10 +31,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python3 scripts/resolve-release.py
       - name: Stop when the source is unchanged
-        if: steps.source.outputs.changed != 'true'
+        if: steps.source.outputs.changed != 'true' && inputs.force != true
         run: echo "The official source archive is unchanged; no release will be published."
       - name: Build
-        if: steps.source.outputs.changed == 'true'
+        if: steps.source.outputs.changed == 'true' || inputs.force == true
         id: build
         uses: Mate-Logic/appimage-python@main
         with:
@@ -40,38 +46,38 @@ jobs:
           version_archive: ${{ steps.source.outputs.archive_path }}
           update_information: 'gh-releases-zsync|${{ github.repository_owner }}|${{ github.event.repository.name }}|latest|AntigravityIDE*.AppImage.zsync'
       - name: Create checksum manifests
-        if: steps.source.outputs.changed == 'true'
+        if: steps.source.outputs.changed == 'true' || inputs.force == true
         run: |
           sha256sum dist/*.AppImage* > dist/SHA256SUMS
           md5sum dist/*.AppImage* > dist/MD5SUMS
           sha512sum dist/*.AppImage* > dist/SHA512SUMS
           printf '%s  official-source.tar.gz\n' '${{ steps.source.outputs.sha256 }}' > dist/SOURCE-SHA256
       - name: Upload workflow artifact
-        if: steps.source.outputs.changed == 'true'
+        if: steps.source.outputs.changed == 'true' || inputs.force == true
         uses: actions/upload-artifact@v4
         with:
           name: AntigravityIDE-AppImage
           path: 'dist'
       - name: Prepare release notes
-        if: steps.source.outputs.changed == 'true'
+        if: steps.source.outputs.changed == 'true' || inputs.force == true
         run: |
           {
             echo "## Antigravity IDE ${{ steps.source.outputs.version }}"
             echo
-            echo "Built from the official Linux x86_64 archive. The source archive SHA-256 is \\`${{ steps.source.outputs.sha256 }}\\`."
+            printf 'Built from the official Linux x86_64 archive. The source archive SHA-256 is `%s`.\n' '${{ steps.source.outputs.sha256 }}'
             echo
             echo "| Asset | SHA-256 | MD5 | SHA-512 |"
             echo "| --- | --- | --- | --- |"
-            for asset in dist/*.AppImage*; do
+            for asset in dist/*.AppImage; do
               name=$(basename "$asset")
               sha256=$(sha256sum "$asset" | cut -d ' ' -f 1)
               md5=$(md5sum "$asset" | cut -d ' ' -f 1)
               sha512=$(sha512sum "$asset" | cut -d ' ' -f 1)
-              echo "| \\`$name\\` | \\`$sha256\\` | \\`$md5\\` | \\`$sha512\\` |"
+              printf '| `%s` | `%s` | `%s` | `%s` |\n' "$name" "$sha256" "$md5" "$sha512"
             done
           } > RELEASE_NOTES.md
       - name: Publish release
-        if: steps.source.outputs.changed == 'true'
+        if: steps.source.outputs.changed == 'true' || inputs.force == true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
