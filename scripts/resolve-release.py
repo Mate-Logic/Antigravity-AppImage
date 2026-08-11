@@ -70,7 +70,15 @@ class DownloadParser(html.parser.HTMLParser):
 
 
 def request(url: str) -> bytes:
-    data = urlopen(Request(url, headers={"User-Agent": "AntigravityIDE-AppImage"}), timeout=60).read()
+    """Fetch bytes without changing archive contents."""
+    return urlopen(
+        Request(url, headers={"User-Agent": "AntigravityIDE-AppImage"}), timeout=60
+    ).read()
+
+
+def request_text(url: str) -> bytes:
+    """Fetch a possibly gzip-compressed text response."""
+    data = request(url)
     return gzip.decompress(data) if data.startswith(b"\x1f\x8b") else data
 
 
@@ -90,7 +98,7 @@ def latest_source_hash() -> str | None:
         raise
     for asset in release.get("assets", []):
         if asset.get("name") == "SOURCE-SHA256":
-            value = request(asset["browser_download_url"]).decode().strip().split()
+            value = request_text(asset["browser_download_url"]).decode().strip().split()
             return value[0].lower() if value else None
     return None
 
@@ -105,7 +113,7 @@ def output(name: str, value: str) -> None:
 
 def main() -> int:
     parser = DownloadParser()
-    parser.feed(request(DOWNLOAD_PAGE).decode("utf-8"))
+    parser.feed(request_text(DOWNLOAD_PAGE).decode("utf-8"))
     if not parser.download_url or not parser.version:
         raise RuntimeError("Could not find the current Linux x64 package on the download page")
 
