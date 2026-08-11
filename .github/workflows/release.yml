@@ -1,55 +1,79 @@
-name: Build AppImage
+name: Build Antigravity AppImage
 on:
   workflow_dispatch:
   schedule:
-    - cron: "5 */12 * * *"
+    - cron: "5 */6 * * *"
   push:
     branches:
       - "main"
 
 jobs:
-  version:
-    name: Antigravity AppImage
+  release:
+    name: Build and publish Antigravity AppImage
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-      - uses: entepotenz/keep-github-actions-alive-min-dependencies@v1
       - name: Install libfuse2
-        run: sudo apt-get install -y libfuse2 imagemagick
-      - name: Get latest download URL
-        id: get_url
-        run: |
-          set -euo pipefail
-          url=$(./scripts/get-download-url.sh)
-          if [[ -z "$url" ]]; then
-            echo "::error::Failed to get download URL"
-            exit 1
-          fi
-          echo "Found: $url"
-          echo "download_url=$url" >> $GITHUB_OUTPUT
+        run: sudo apt-get update && sudo apt-get install -y libfuse2 imagemagick jq
+      - name: Resolve official release
+        id: source
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/resolve-release.py
+      - name: Stop when the source is unchanged
+        if: steps.source.outputs.changed != 'true'
+        run: echo "The official source archive is unchanged; no release will be published."
       - name: Build
+        if: steps.source.outputs.changed == 'true'
         id: build
-        uses: tyvsmith/appimage-bash@main
+        uses: Mate-Logic/appimage-python@main
         with:
-          version_url: ${{ steps.get_url.outputs.download_url }}
+          version_url: ${{ steps.source.outputs.download_url }}
           version_file: 'resources/app/product.json'
           version_bash: 'jq -r ".ideVersion"'
           version_icon: 'code.png'
-      - name: Upload artifact
-        if: ${{ env.APP_UPDATE_NEEDED == 'true' }}
+          version_sha256: ${{ steps.source.outputs.sha256 }}
+          update_information: 'gh-releases-zsync|${{ github.repository_owner }}|${{ github.event.repository.name }}|latest|Antigravity*.AppImage.zsync'
+      - name: Create checksum manifests
+        if: steps.source.outputs.changed == 'true'
+        run: |
+          sha256sum dist/*.AppImage* > dist/SHA256SUMS
+          md5sum dist/*.AppImage* > dist/MD5SUMS
+          sha512sum dist/*.AppImage* > dist/SHA512SUMS
+          printf '%s  official-source.tar.gz\n' '${{ steps.source.outputs.sha256 }}' > dist/SOURCE-SHA256
+      - name: Upload workflow artifact
+        if: steps.source.outputs.changed == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.APP_SHORT_NAME }}.AppImage
+          name: Antigravity-AppImage
           path: 'dist'
-      - name: Release
-        if: ${{ env.APP_UPDATE_NEEDED == 'true' }}
-        uses: marvinpinto/action-automatic-releases@latest
-        with:
-          title: ${{ env.APP_NAME }} AppImage ${{ env.APP_VERSION }}
-          automatic_release_tag: latest
-          prerelease: false
-          files: |
-            dist/
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare release notes
+        if: steps.source.outputs.changed == 'true'
+        run: |
+          {
+            echo "## Antigravity IDE ${{ steps.source.outputs.version }}"
+            echo
+            echo "Built from the official Linux x86_64 archive. The source archive SHA-256 is \\`${{ steps.source.outputs.sha256 }}\\`."
+            echo
+            echo "| Asset | SHA-256 | MD5 | SHA-512 |"
+            echo "| --- | --- | --- | --- |"
+            for asset in dist/*.AppImage*; do
+              name=$(basename "$asset")
+              sha256=$(sha256sum "$asset" | cut -d ' ' -f 1)
+              md5=$(md5sum "$asset" | cut -d ' ' -f 1)
+              sha512=$(sha512sum "$asset" | cut -d ' ' -f 1)
+              echo "| \\`$name\\` | \\`$sha256\\` | \\`$md5\\` | \\`$sha512\\` |"
+            done
+          } > RELEASE_NOTES.md
+      - name: Publish release
+        if: steps.source.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view latest >/dev/null 2>&1 || gh release create latest --title "Antigravity IDE ${{ steps.source.outputs.version }}" --notes-file RELEASE_NOTES.md
+          gh release edit latest --title "Antigravity IDE ${{ steps.source.outputs.version }}" --notes-file RELEASE_NOTES.md --latest
+          gh release upload latest dist/* --clobber

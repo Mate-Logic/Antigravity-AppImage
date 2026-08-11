@@ -1,35 +1,60 @@
-<h2 align="center">Antigravity AppImage</h2>
-<p align="center">Unofficial / Community provided Google Antigravity AppImage</p>
+# Antigravity AppImage
 
-[![Antigravity AppImage release](https://github.com/tyvsmith/Antigravity-AppImage/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/tyvsmith/Antigravity-AppImage/actions/workflows/release.yml)
+[![Build and publish](https://github.com/tyvsmith/Antigravity-AppImage/actions/workflows/release.yml/badge.svg)](https://github.com/tyvsmith/Antigravity-AppImage/actions/workflows/release.yml)
 
-## Get Started
+An unofficial, community-maintained AppImage distribution of the Google
+Antigravity IDE for Linux x86_64.
 
-#### [Download the latest release](https://github.com/tyvsmith/Antigravity-AppImage/releases/latest)
-- Automatically built from the latest stable release
-- Supports AppImage self-update
+## Download
 
-### Executing
-#### File Manager
-Double-click the `*.AppImage` file and you are done!
+Download the [latest release](https://github.com/tyvsmith/Antigravity-AppImage/releases/latest).
+Every release contains the AppImage, its zsync update file, and SHA-256, MD5,
+and SHA-512 manifests. The release notes also contain a checksum table for each
+published AppImage asset.
 
-> In normal cases, the above method should work, but in some cases you
-> need to mark the file as executable. You can do this using File manager -> right click > Properties > Allow Execution,
-> or by terminal issuing command `chmod +x Antigravity-*.AppImage`
+This project is not affiliated with Google. The application itself is always
+downloaded from the official [Antigravity download page](https://antigravity.google/download).
 
-#### AppImageLauncher
-Use AppImageLauncher for better desktop integration: [download AppImageLauncher](https://github.com/TheAssassin/AppImageLauncher)
+## Run
 
-#### Terminal
 ```bash
-chmod +x Antigravity-*.AppImage
-./Antigravity-*.AppImage
+chmod +x Antigravity*.AppImage
+./Antigravity*.AppImage
 ```
 
-#### Official Downloads
-The official Google Antigravity downloads are available at:
-https://antigravity.google/download
+AppImage update metadata is embedded in each image. Compatible AppImage
+updaters can use the zsync asset from the latest GitHub release.
 
-#### Build
-The AppImage is built from the official `.tar.gz` Linux package by GitHub Actions using:
-https://github.com/tyvsmith/appimage-bash
+## Automation
+
+The scheduled workflow runs every six hours and also supports manual runs. It:
+
+1. Parses the official download page to find the current Linux x86_64 archive.
+2. Downloads the archive and computes its SHA-256 digest.
+3. Compares that digest with the `SOURCE-SHA256` asset of the latest release.
+4. Stops without publishing when the source bytes have not changed.
+5. Passes the expected digest to [`appimage-python`](https://github.com/Mate-Logic/appimage-python), which verifies the archive it downloads before building.
+6. Publishes the AppImage, zsync file, checksum manifests, and a release checksum table.
+
+Google currently does not publish a checksum for this archive. The source
+digest is therefore an identity for the exact bytes downloaded by this project,
+not an independently signed vendor attestation. A mismatch between the
+workflow's preflight download and the builder's download fails the build rather
+than packaging unverified bytes.
+
+## Local development
+
+The workflow is the supported reproducible build path because the official
+download URL is dynamic. To inspect the resolver locally:
+
+```bash
+python3 scripts/resolve-release.py
+```
+
+The AppImage is built with the `Mate-Logic/appimage-python` GitHub Action. The
+repository intentionally contains only the desktop integration files and the
+workflow-specific resolver.
+
+## License
+
+This project is distributed under the MIT License. See [LICENSE](LICENSE).
