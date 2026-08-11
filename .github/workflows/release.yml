@@ -1,4 +1,4 @@
-name: Build Antigravity AppImage
+name: Build AntigravityIDE AppImage
 on:
   workflow_dispatch:
   schedule:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   release:
-    name: Build and publish Antigravity AppImage
+    name: Build and publish AntigravityIDE AppImage
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -37,7 +37,7 @@ jobs:
           version_bash: 'jq -r ".ideVersion"'
           version_icon: 'code.png'
           version_sha256: ${{ steps.source.outputs.sha256 }}
-          update_information: 'gh-releases-zsync|${{ github.repository_owner }}|${{ github.event.repository.name }}|latest|Antigravity*.AppImage.zsync'
+          update_information: 'gh-releases-zsync|${{ github.repository_owner }}|${{ github.event.repository.name }}|latest|AntigravityIDE*.AppImage.zsync'
       - name: Create checksum manifests
         if: steps.source.outputs.changed == 'true'
         run: |
@@ -49,7 +49,7 @@ jobs:
         if: steps.source.outputs.changed == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: Antigravity-AppImage
+          name: AntigravityIDE-AppImage
           path: 'dist'
       - name: Prepare release notes
         if: steps.source.outputs.changed == 'true'

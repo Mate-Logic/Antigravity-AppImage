@@ -1,4 +1,4 @@
-# Antigravity AppImage
+# AntigravityIDE AppImage
 
 [![Build and publish](https://github.com/tyvsmith/Antigravity-AppImage/actions/workflows/release.yml/badge.svg)](https://github.com/tyvsmith/Antigravity-AppImage/actions/workflows/release.yml)
 
@@ -18,8 +18,8 @@ downloaded from the official [Antigravity download page](https://antigravity.goo
 ## Run
 
 ```bash
-chmod +x Antigravity*.AppImage
-./Antigravity*.AppImage
+chmod +x AntigravityIDE*.AppImage
+./AntigravityIDE*.AppImage
 ```
 
 AppImage update metadata is embedded in each image. Compatible AppImage

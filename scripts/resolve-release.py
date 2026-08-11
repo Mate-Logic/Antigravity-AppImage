@@ -71,7 +71,7 @@ class DownloadParser(html.parser.HTMLParser):
 
 
 def request(url: str) -> bytes:
-    data = urlopen(Request(url, headers={"User-Agent": "Antigravity-AppImage"}), timeout=60).read()
+    data = urlopen(Request(url, headers={"User-Agent": "AntigravityIDE-AppImage"}), timeout=60).read()
     return gzip.decompress(data) if data.startswith(b"\x1f\x8b") else data
 
 
@@ -79,7 +79,7 @@ def latest_source_hash() -> str | None:
     if "/" not in REPOSITORY:
         return None
     api = f"https://api.github.com/repos/{REPOSITORY}/releases/latest"
-    headers = {"User-Agent": "Antigravity-AppImage", "Accept": "application/vnd.github+json"}
+    headers = {"User-Agent": "AntigravityIDE-AppImage", "Accept": "application/vnd.github+json"}
     token = os.environ.get("GITHUB_TOKEN")
     if token:
         headers["Authorization"] = f"Bearer {token}"

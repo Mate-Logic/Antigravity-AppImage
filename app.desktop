@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Antigravity
+Name=AntigravityIDE
 Comment=Build the new way
 Exec=antigravity-ide %F
 Icon=antigravity
