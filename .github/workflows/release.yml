@@ -37,6 +37,7 @@ jobs:
           version_bash: 'jq -r ".ideVersion"'
           version_icon: 'code.png'
           version_sha256: ${{ steps.source.outputs.sha256 }}
+          version_archive: ${{ steps.source.outputs.archive_path }}
           update_information: 'gh-releases-zsync|${{ github.repository_owner }}|${{ github.event.repository.name }}|latest|AntigravityIDE*.AppImage.zsync'
       - name: Create checksum manifests
         if: steps.source.outputs.changed == 'true'

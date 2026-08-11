@@ -16,7 +16,6 @@ import json
 import os
 import re
 import sys
-import tempfile
 import gzip
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -110,14 +109,15 @@ def main() -> int:
     if not parser.download_url or not parser.version:
         raise RuntimeError("Could not find the current Linux x64 package on the download page")
 
-    with tempfile.TemporaryDirectory(prefix="antigravity-source-") as directory:
-        archive = Path(directory) / "Antigravity.tar.gz"
-        archive.write_bytes(request(parser.download_url))
-        digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+    archive = Path.cwd() / "source" / "Antigravity.tar.gz"
+    archive.parent.mkdir(parents=True, exist_ok=True)
+    archive.write_bytes(request(parser.download_url))
+    digest = hashlib.sha256(archive.read_bytes()).hexdigest()
 
     output("download_url", parser.download_url)
     output("version", parser.version)
     output("sha256", digest)
+    output("archive_path", str(archive))
     output("changed", str(digest.lower() != (latest_source_hash() or "").lower()).lower())
     return 0
 
