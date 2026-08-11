@@ -29,44 +29,64 @@ REPOSITORY = os.environ.get("GITHUB_REPOSITORY", "")
 class DownloadParser(html.parser.HTMLParser):
     def __init__(self) -> None:
         super().__init__()
-        self.in_antigravity = False
+        self.in_ide = False
         self.section_depth = 0
-        self.anchor: tuple[str, list[str]] | None = None
+        self.anchor: tuple[str, str, list[str]] | None = None
+        self.heading: list[str] | None = None
+        self.platform = ""
+        self.version_text: list[str] | None = None
         self.download_url = ""
         self.version = ""
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attributes = dict(attrs)
-        if tag == "section" and attributes.get("id") == "antigravity-2":
-            self.in_antigravity = True
+        if tag == "section" and attributes.get("id") == "antigravity-ide":
+            self.in_ide = True
             self.section_depth = 1
-        elif self.in_antigravity and tag == "section":
+        elif self.in_ide and tag == "section":
             self.section_depth += 1
-        if self.in_antigravity and tag == "a":
+        if self.in_ide and tag == "h3":
+            self.heading = []
+        if self.in_ide and tag == "a":
             href = attributes.get("href", "") or ""
-            self.anchor = (href, [])
-        if self.in_antigravity and attributes.get("class") == "nav-version-chip":
-            self.version = ""
+            classes = attributes.get("class", "") or ""
+            self.anchor = (href, classes, [])
+        if self.in_ide and "nav-version-chip" in (attributes.get("class", "") or ""):
+            self.version_text = []
 
     def handle_data(self, data: str) -> None:
+        if self.heading is not None:
+            self.heading.append(data)
         if self.anchor:
-            self.anchor[1].append(data)
-        if self.in_antigravity and not self.version:
-            match = re.search(r"v?(\d+(?:\.\d+)+)", data)
-            if match:
-                self.version = match.group(1)
+            self.anchor[2].append(data)
+        if self.version_text is not None:
+            self.version_text.append(data)
 
     def handle_endtag(self, tag: str) -> None:
+        if tag == "h3" and self.heading is not None:
+            self.platform = " ".join("".join(self.heading).split()).lower()
+            self.heading = None
         if tag == "a" and self.anchor:
-            href, text = self.anchor
+            href, classes, text = self.anchor
             label = " ".join("".join(text).split()).lower()
-            if "linux-x64" in href and href.endswith(".tar.gz") and "x64" in label:
+            if (
+                self.platform == "linux"
+                and "button-primary" in classes
+                and label == "download for x64"
+                and "linux-x64" in href
+                and href.endswith(".tar.gz")
+            ):
                 self.download_url = href
             self.anchor = None
-        if tag == "section" and self.in_antigravity:
+        if tag == "a" and self.version_text is not None:
+            match = re.search(r"v?(\d+(?:\.\d+)+)", "".join(self.version_text))
+            if match:
+                self.version = match.group(1)
+            self.version_text = None
+        if tag == "section" and self.in_ide:
             self.section_depth -= 1
             if self.section_depth == 0:
-                self.in_antigravity = False
+                self.in_ide = False
 
 
 def request(url: str) -> bytes:
